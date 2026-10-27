@@ -1,0 +1,36 @@
+{
+  "name": "A.T.L.A.S. Field OS",
+  "short_name": "ATLAS Field",
+  "description": "Field sensors, tank level, local weather and careful AI actions for your farm.",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#061411",
+  "theme_color": "#061411",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities", "weather"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A.T.L.A.S. Field OS</title>
+<meta name="description" content="A.T.L.A.S. Field OS — field sensors, tank level, weather and AI actions for your farm.">
+<meta name="theme-color" content="#061411">
+<meta name="color-scheme" content="dark light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ATLAS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="assets/app.css">
+<script>
+  /* Paint the saved theme before first render so there is no flash. */
+  try {
+    var saved = JSON.parse(localStorage.getItem("atlas.fieldos.v1") || "null");
+    if (saved && saved.settings && saved.settings.theme === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+      document.querySelector('meta[name="theme-color"]').setAttribute("content", "#f3f7f2");
+    }
+  } catch (e) { /* private mode */ }
+</script>
+</head>
+<body>
+
+<!-- Icon sprite: one request, reused everywhere. -->
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 4C11 4 4 8.5 4 16c0 2.2 1.3 4 3.5 4C15 20 20 12.5 20 4Z"/><path d="M4 21c2-6 6-9.5 12-12"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M4.2 7.5l2.6 1.5M17.2 15l2.6 1.5M4.2 16.5l2.6-1.5M17.2 9l2.6-1.5"/><circle cx="12" cy="12" r="4"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8.5 8.5 0 0 1-12.7 7.4L3 21l1.6-5.3A8.5 8.5 0 1 1 21 12Z"/><path d="M8 11h8M8 14.5h5"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M15 15h2v2h-2zM19 15h2v2h-2zM15 19h2v2h-2zM19 19h2v2h-2zM11 3v4M11 9v2M3 11h4M9 11h2M11 15v2M11 19v2"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 5.5-8 12-8 12s-8-6.5-8-12a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6.7"/><path d="M20 4v7h-7"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-cloud-sun" viewBox="0 0 24 24"><path d="M8 5V3M3.5 7 2 5.5M12.5 7 14 5.5M3 12H1"/><path d="M7 15a4 4 0 0 1 .8-7.9A5 5 0 0 1 17.4 9 3.5 3.5 0 0 1 17 16H7Z"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M6 18a4 4 0 0 1 .5-8A6 6 0 0 1 18 11.5a3.5 3.5 0 0 1-.5 6.5H6Z"/></symbol>
+  <symbol id="i-rain" viewBox="0 0 24 24"><path d="M6 15a4 4 0 0 1 .5-8A6 6 0 0 1 18 8.5a3.5 3.5 0 0 1-.5 6.5H6Z"/><path d="M8 19v2M12 18v3M16 19v2"/></symbol>
+  <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 2S5 10 5 15a7 7 0 0 0 14 0c0-5-7-13-7-13Z"/></symbol>
+  <symbol id="i-thermometer" viewBox="0 0 24 24"><path d="M14 14.8V4a2 2 0 1 0-4 0v10.8a4.5 4.5 0 1 0 4 0Z"/><path d="M12 9v7"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.8 18a2 2 0 0 0 1.7 3h11a2 2 0 0 0 1.7-3L14 9V3"/><path d="M7.5 15h9"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-8 12h6l-1 8 8-12h-6l1-8Z"/></symbol>
+  <symbol id="i-battery" viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 10v4"/><path d="M5 10h4v4H5z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-signal" viewBox="0 0 24 24"><path d="M4 20v-3M9 20v-6M14 20V9M19 20V4"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.5 9a15 15 0 0 1 19 0M5.5 12.5a10.5 10.5 0 0 1 13 0M8.5 16a6 6 0 0 1 7 0"/><circle cx="12" cy="19.5" r=".8" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v5M12 17.3v.2"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m21 3-7.5 18-3.8-7.7L2 9.5 21 3Z"/><path d="M9.7 13.3 21 3"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 8V4h4M17 4h4v4M21 16v4h-4M7 20H3v-4"/><path d="M7 12h10"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v5M14 11v5"/></symbol>
+  <symbol id="i-update" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></symbol>
+  <symbol id="i-tank" viewBox="0 0 24 24"><path d="M6 8h12v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8Z"/><path d="M9 8V5a3 3 0 0 1 6 0v3"/><path d="M6 14c2-1.5 4 1.5 6 0s4 1.5 6 0"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-language" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-sun2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.2"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></symbol>
+  <symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 16.2a6 6 0 0 0 0-8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 19.1a10 10 0 0 0 0-14.2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.2"/></symbol>
+</svg>
+
+<div class="ambient" aria-hidden="true"></div>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="#/home">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none"><path d="M16 3 27 9.5v13L16 29 5 22.5v-13L16 3Z" stroke="currentColor" stroke-width="1.5"/><path d="M16 22.5V12m0 4.4c0-3 2.4-5.5 5.5-5.5 0 3.1-2.4 5.5-5.5 5.5Zm0 4c0-2.6-2-4.7-4.6-4.7 0 2.7 2 4.7 4.6 4.7Z" stroke="currentColor" stroke-linecap="round"/></svg>
+      </span>
+      <span class="brand__text"><strong>A.T.L.A.S.</strong><small data-i18n="brand.sub">Field OS</small></span>
+    </a>
+
+    <nav class="side-nav" aria-label="Primary">
+      <button class="side-nav__item" data-nav="home" type="button"><svg class="ico"><use href="#i-home"/></svg><span data-i18n="nav.home">Home</span></button>
+      <button class="side-nav__item" data-nav="sensors" type="button"><svg class="ico"><use href="#i-grid"/></svg><span data-i18n="nav.sensors">Sensors</span></button>
+      <button class="side-nav__item" data-nav="ai" type="button"><svg class="ico"><use href="#i-chat"/></svg><span data-i18n="nav.assistant">Assistant</span><span class="side-nav__badge" id="sideAiBadge" hidden></span></button>
+      <button class="side-nav__item" data-nav="setup" type="button"><svg class="ico"><use href="#i-qr"/></svg><span data-i18n="nav.setup">Setup</span></button>
+      <button class="side-nav__item" data-nav="settings" type="button"><svg class="ico"><use href="#i-settings"/></svg><span data-i18n="nav.settings">Settings</span></button>
+    </nav>
+
+    <div class="side-foot">
+      <div class="edge-card" id="edgeCard">
+        <span class="status-dot" id="edgeDot"></span>
+        <div><strong id="edgeTitle">EdgeHub</strong><small id="edgeSub">Checking link…</small></div>
+      </div>
+      <p class="side-note"><svg class="ico"><use href="#i-radio"/></svg> LoRa 865 MHz · Heltec</p>
+    </div>
+  </aside>
+
+  <div class="frame">
+    <header class="topbar">
+      <a class="brand brand--compact" href="#/home">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><path d="M16 3 27 9.5v13L16 29 5 22.5v-13L16 3Z" stroke="currentColor" stroke-width="1.5"/><path d="M16 22.5V12m0 4.4c0-3 2.4-5.5 5.5-5.5 0 3.1-2.4 5.5-5.5 5.5Zm0 4c0-2.6-2-4.7-4.6-4.7 0 2.7 2 4.7 4.6 4.7Z" stroke="currentColor" stroke-linecap="round"/></svg>
+        </span>
+        <span class="brand__text"><strong>A.T.L.A.S.</strong><small data-i18n="brand.sub">Field OS</small></span>
+      </a>
+      <div class="topbar__page">
+        <span id="pageEyebrow">Field overview</span>
+        <strong id="pageTitle">Home</strong>
+      </div>
+      <div class="topbar__actions">
+        <button class="loc-chip" id="locChip" type="button" data-action="locate" title="Location and weather">
+          <svg class="ico"><use href="#i-pin"/></svg>
+          <span id="locLabel">Set location</span>
+          <span class="loc-chip__temp" id="locTemp"></span>
+        </button>
+        <button class="icon-btn" type="button" data-action="refresh-all" aria-label="Refresh data" data-i18n-aria="action.refresh">
+          <svg class="ico"><use href="#i-refresh"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <!-- HOME -->
+      <section class="view is-active" id="view-home" data-view="home" aria-labelledby="homeTitle">
+        <div class="view-head">
+          <div>
+            <p class="eyebrow" data-i18n="home.eyebrow">Field overview</p>
+            <h1 id="homeTitle" data-i18n="home.title">Your field, right now</h1>
+            <p class="view-sub" id="homeSub">A calm read on soil, water and the next best action.</p>
+          </div>
+          <div class="head-meta" id="homeMeta"></div>
+        </div>
+        <div class="home-grid">
+          <article class="card weather-card" id="homeWeather" aria-labelledby="weatherTitle"></article>
+          <article class="card tank-card" id="homeTank" aria-labelledby="tankTitle"></article>
+          <article class="card actions-card" id="homeActions" aria-labelledby="actionsTitle"></article>
+          <article class="card node-card" id="homeNode" aria-labelledby="nodeTitle"></article>
+          <article class="card soil-card" id="homeSoil" aria-labelledby="soilTitle"></article>
+        </div>
+      </section>
+
+      <!-- SENSORS -->
+      <section class="view" id="view-sensors" data-view="sensors" aria-labelledby="sensorsTitle">
+        <div class="view-head">
+          <div>
+            <p class="eyebrow" data-i18n="sensors.eyebrow">Live readings</p>
+            <h1 id="sensorsTitle" data-i18n="sensors.title">Sensors</h1>
+            <p class="view-sub" data-i18n="sensors.sub">Seven soil parameters, one tank. Readings update only when you ask.</p>
+          </div>
+          <div class="head-meta" id="sensorMeta"></div>
+        </div>
+        <div class="sensor-toolbar">
+          <div class="segmented" id="sensorTabs" role="tablist" aria-label="Sensor group"></div>
+          <button class="btn btn--ghost btn--sm" type="button" data-action="refresh-sensors">
+            <svg class="ico"><use href="#i-refresh"/></svg><span data-i18n="action.refetch">Refetch readings</span>
+          </button>
+        </div>
+        <div class="sync-strip" id="syncStrip"></div>
+        <div id="sensorContent"></div>
+      </section>
+
+      <!-- ASSISTANT -->
+      <section class="view" id="view-ai" data-view="ai" aria-labelledby="aiTitle">
+        <div class="view-head">
+          <div>
+            <p class="eyebrow" data-i18n="ai.eyebrow">On-field intelligence</p>
+            <h1 id="aiTitle" data-i18n="ai.title">ATLAS assistant</h1>
+            <p class="view-sub" data-i18n="ai.sub">Ask about your field. Suggestions never run on their own.</p>
+          </div>
+          <div class="head-meta" id="aiMeta"></div>
+        </div>
+        <div class="segmented ai-tabs" id="aiTabs" role="tablist" aria-label="Assistant views">
+          <button type="button" role="tab" data-ai-tab="chat" aria-selected="true"><span data-i18n="ai.tab.chat">Assistant</span></button>
+          <button type="button" role="tab" data-ai-tab="log" aria-selected="false"><span data-i18n="ai.tab.log">Action log</span></button>
+        </div>
+
+        <div class="chat-pane" id="aiChatPane">
+          <div class="chat-context" id="chatHead"></div>
+          <div class="chat-log" id="chatLog" aria-live="polite"></div>
+          <div class="quick-row" id="quickPrompts"></div>
+          <form class="chat-form" id="chatForm" autocomplete="off">
+            <label class="sr-only" for="chatInput" data-i18n="ai.input.label">Ask ATLAS</label>
+            <input id="chatInput" name="message" type="text" maxlength="400" data-i18n-placeholder="ai.input.placeholder" placeholder="Ask about soil, water or your crop…">
+            <button class="send-btn" type="submit" aria-label="Send" data-i18n-aria="ai.send">
+              <svg class="ico"><use href="#i-send"/></svg>
+            </button>
+          </form>
+        </div>
+
+        <div class="log-pane" id="aiLogPane" hidden>
+          <div class="log-head">
+            <div><p class="eyebrow" data-i18n="ai.log.eyebrow">Audit trail</p><h2 data-i18n="ai.log.title">Previous AI actions</h2></div>
+            <button class="text-btn" type="button" data-action="clear-log" data-i18n="ai.log.clear">Clear</button>
+          </div>
+          <div id="actionLog"></div>
+        </div>
+      </section>
+
+      <!-- SETUP -->
+      <section class="view" id="view-setup" data-view="setup" aria-labelledby="setupTitle">
+        <div class="view-head">
+          <div>
+            <p class="eyebrow" data-i18n="setup.eyebrow">Hardware</p>
+            <h1 id="setupTitle" data-i18n="setup.title">Setup</h1>
+            <p class="view-sub" data-i18n="setup.sub">Pair each field node and the water tank with the QR code on its label.</p>
+          </div>
+          <div class="head-meta" id="setupMeta"></div>
+        </div>
+        <div class="setup-top">
+          <article class="card pair-card">
+            <div class="pair-card__art" aria-hidden="true"><svg class="ico"><use href="#i-qr"/></svg></div>
+            <div>
+              <h2 data-i18n="setup.pair.title">QR linking</h2>
+              <p data-i18n="setup.pair.body">Scan the code printed on the node enclosure. The device ID and pairing key are read automatically.</p>
+            </div>
+            <div class="pair-card__actions">
+              <button class="btn btn--primary btn--sm" type="button" data-action="scan-node"><svg class="ico"><use href="#i-scan"/></svg><span data-i18n="setup.scanNode">Scan field node</span></button>
+              <button class="btn btn--sm" type="button" data-action="scan-tank"><svg class="ico"><use href="#i-tank"/></svg><span data-i18n="setup.scanTank">Scan tank</span></button>
+            </div>
+          </article>
+          <article class="card steps-card">
+            <h2 data-i18n="setup.steps.title">Three quick steps</h2>
+            <ol class="mini-steps">
+              <li><span>1</span><div><strong data-i18n="setup.step1.t">Power the node</strong><small data-i18n="setup.step1.b">Solar LED breathes green.</small></div></li>
+              <li><span>2</span><div><strong data-i18n="setup.step2.t">Scan its QR</strong><small data-i18n="setup.step2.b">Use the camera or enter the code.</small></div></li>
+              <li><span>3</span><div><strong data-i18n="setup.step3.t">Name the field</strong><small data-i18n="setup.step3.b">It appears in Home and Sensors.</small></div></li>
+            </ol>
+          </article>
+        </div>
+
+        <div class="section-head">
+          <div><p class="eyebrow" data-i18n="setup.linked.eyebrow">Paired hardware</p><h2 data-i18n="setup.linked.title">Field nodes</h2></div>
+          <button class="btn btn--ghost btn--sm" type="button" data-action="scan-node"><svg class="ico"><use href="#i-plus"/></svg><span data-i18n="setup.addNode">Add node</span></button>
+        </div>
+        <div id="setupDevices" class="device-list"></div>
+
+        <div class="section-head">
+          <div><p class="eyebrow" data-i18n="setup.tank.eyebrow">Water storage</p><h2 data-i18n="setup.tank.title">Tank setup</h2></div>
+        </div>
+        <div id="tankSetup" class="tank-setup"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" id="view-settings" data-view="settings" aria-labelledby="settingsTitle">
+        <div class="view-head">
+          <div>
+            <p class="eyebrow" data-i18n="settings.eyebrow">Preferences</p>
+            <h1 id="settingsTitle" data-i18n="settings.title">Settings</h1>
+            <p class="view-sub" data-i18n="settings.sub">Everything stays on this device unless you connect EdgeHub.</p>
+          </div>
+          <div class="head-meta" id="settingsMeta"></div>
+        </div>
+
+        <div class="settings-grid">
+          <section class="card settings-card">
+            <div class="card-head"><div><p class="eyebrow" data-i18n="settings.appearance.eyebrow">Interface</p><h2 data-i18n="settings.appearance.title">Appearance</h2></div><svg class="ico ico--lg"><use href="#i-moon"/></svg></div>
+            <div class="setting-row">
+              <div class="setting-copy"><strong data-i18n="settings.dark.title">Dark mode</strong><small data-i18n="settings.dark.body">Green-blue field theme. On by default.</small></div>
+              <button class="switch" id="themeToggle" type="button" role="switch" aria-checked="true" aria-label="Dark mode" data-i18n-aria="settings.dark.title"><span></span></button>
+            </div>
+            <div class="setting-row setting-row--stack">
+              <div class="setting-copy"><strong data-i18n="settings.language.title">Language</strong><small data-i18n="settings.language.body">Applies across the whole app.</small></div>
+              <label class="select-wrap">
+                <svg class="ico"><use href="#i-language"/></svg>
+                <select id="langSelect" aria-label="Language">
+                  <option value="en">English</option>
+                  <option value="hi">हिन्दी</option>
+                  <option value="te">తెలుగు</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="card settings-card">
+            <div class="card-head"><div><p class="eyebrow" data-i18n="settings.ai.eyebrow">Automation</p><h2 data-i18n="settings.ai.title">AI actions</h2></div><svg class="ico ico--lg"><use href="#i-spark"/></svg></div>
+            <div class="setting-row">
+              <div class="setting-copy"><strong data-i18n="settings.ai.master">Allow AI actions</strong><small data-i18n="settings.ai.masterBody">Suggestions still appear; nothing is executed.</small></div>
+              <button class="switch" id="aiMaster" type="button" role="switch" aria-checked="true" aria-label="Allow AI actions" data-i18n-aria="settings.ai.master"><span></span></button>
+            </div>
+            <div id="aiActionToggles" class="toggle-list"></div>
+          </section>
+
+          <section class="card settings-card">
+            <div class="card-head"><div><p class="eyebrow" data-i18n="settings.location.eyebrow">Weather</p><h2 data-i18n="settings.location.title">Location</h2></div><svg class="ico ico--lg"><use href="#i-pin"/></svg></div>
+            <div class="setting-row">
+              <div class="setting-copy"><strong data-i18n="settings.autoLocation.title">Use device location</strong><small data-i18n="settings.autoLocation.body">Weather follows the phone's GPS.</small></div>
+              <button class="switch" id="autoLocation" type="button" role="switch" aria-checked="true" aria-label="Use device location" data-i18n-aria="settings.autoLocation.title"><span></span></button>
+            </div>
+            <div class="field-grid" id="locationFields">
+              <label class="field"><span data-i18n="settings.loc.label">Place name</span><input id="locName" type="text" maxlength="60" placeholder="Village, district"></label>
+              <div class="field-pair">
+                <label class="field"><span data-i18n="settings.loc.lat">Latitude</span><input id="locLat" type="number" step="any" min="-90" max="90" inputmode="decimal" placeholder="17.385"></label>
+                <label class="field"><span data-i18n="settings.loc.lng">Longitude</span><input id="locLng" type="number" step="any" min="-180" max="180" inputmode="decimal" placeholder="78.486"></label>
+              </div>
+              <label class="field"><span data-i18n="settings.loc.weatherKey">Google Weather API key</span><input id="weatherKey" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…"></label>
+              <p class="field-note"><svg class="ico"><use href="#i-lock"/></svg><span data-i18n="settings.loc.keyNote">Stored only on this device. Needed for live Google Weather.</span></p>
+            </div>
+            <div class="row-actions">
+              <button class="btn btn--ghost btn--sm" type="button" data-action="use-device-location"><svg class="ico"><use href="#i-pin"/></svg><span data-i18n="settings.loc.useDevice">Use my location</span></button>
+              <button class="btn btn--primary btn--sm" type="button" data-action="save-location"><svg class="ico"><use href="#i-check"/></svg><span data-i18n="action.save">Save</span></button>
+            </div>
+          </section>
+
+          <section class="card settings-card">
+            <div class="card-head"><div><p class="eyebrow" data-i18n="settings.data.eyebrow">EdgeHub</p><h2 data-i18n="settings.data.title">Data &amp; sync</h2></div><svg class="ico ico--lg"><use href="#i-cpu"/></svg></div>
+            <div class="field-grid">
+              <label class="field"><span data-i18n="settings.edge.url">EdgeHub URL</span><input id="edgeUrl" type="url" spellcheck="false" placeholder="https://edgehub.local"></label>
+              <label class="field"><span data-i18n="settings.edge.token">Device token</span><input id="edgeToken" type="password" autocomplete="off" spellcheck="false" placeholder="Optional bearer token"></label>
+            </div>
+            <div class="sync-row">
+              <div><small data-i18n="settings.data.lastRefetch">Last sensor refetch</small><strong id="lastRefetch">—</strong></div>
+              <div class="row-actions">
+                <button class="btn btn--ghost btn--sm" type="button" data-action="test-edge"><svg class="ico"><use href="#i-wifi"/></svg><span data-i18n="action.test">Test</span></button>
+                <button class="btn btn--primary btn--sm" type="button" data-action="refresh-sensors"><svg class="ico"><use href="#i-refresh"/></svg><span data-i18n="action.refetch">Refetch readings</span></button>
+              </div>
+            </div>
+            <div class="notice"><svg class="ico"><use href="#i-info"/></svg><p data-i18n="settings.data.note">Sensor polling is off by default. Readings are fetched on app open and when you tap refetch — never in the background.</p></div>
+            <button class="text-btn" type="button" data-action="save-edge" data-i18n="settings.data.save">Save EdgeHub connection</button>
+          </section>
+
+          <section class="card settings-card">
+            <div class="card-head"><div><p class="eyebrow" data-i18n="settings.app.eyebrow">Maintenance</p><h2 data-i18n="settings.app.title">App</h2></div><svg class="ico ico--lg"><use href="#i-layers"/></svg></div>
+            <div class="kv-list">
+              <div><span data-i18n="settings.app.version">Version</span><strong id="appVersion">1.0.0</strong></div>
+              <div><span data-i18n="settings.app.build">Build</span><strong>Field OS · PWA</strong></div>
+              <div><span data-i18n="settings.app.mode">Data mode</span><strong id="dataMode">Demo</strong></div>
+            </div>
+            <div class="row-actions row-actions--wrap">
+              <button class="btn btn--ghost btn--sm" type="button" data-action="check-update"><svg class="ico"><use href="#i-update"/></svg><span data-i18n="settings.app.check">Check for update</span></button>
+              <button class="btn btn--ghost btn--sm" type="button" data-action="install-app"><svg class="ico"><use href="#i-download"/></svg><span data-i18n="settings.app.install">Install app</span></button>
+              <button class="btn btn--danger btn--sm" type="button" data-action="reset-app"><svg class="ico"><use href="#i-trash"/></svg><span data-i18n="settings.app.reset">Reset</span></button>
+            </div>
+            <p class="field-note" id="installHint" data-i18n="settings.app.installHint">Install from your browser menu to run full-screen offline.</p>
+          </section>
+
+          <section class="card settings-card settings-card--about">
+            <div class="card-head"><div><p class="eyebrow" data-i18n="settings.about.eyebrow">System</p><h2 data-i18n="settings.about.title">How it works</h2></div><svg class="ico ico--lg"><use href="#i-radio"/></svg></div>
+            <div class="pipeline">
+              <span><svg class="ico"><use href="#i-leaf"/></svg><small data-i18n="settings.pipe.node">7-in-1 node</small></span>
+              <i></i>
+              <span><svg class="ico"><use href="#i-radio"/></svg><small>LoRa</small></span>
+              <i></i>
+              <span><svg class="ico"><use href="#i-cpu"/></svg><small>EdgeHub</small></span>
+              <i></i>
+              <span><svg class="ico"><use href="#i-spark"/></svg><small>AI</small></span>
+            </div>
+            <p class="about-copy" data-i18n="settings.about.copy">The Heltec Wireless Tracker brain collects LoRa uplinks from each field node and the tank. EdgeHub turns the readings into insights and actions. This app reads that data; it never wakes the sensors.</p>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Primary">
+    <button type="button" data-nav="home"><svg class="ico"><use href="#i-home"/></svg><span data-i18n="nav.home">Home</span></button>
+    <button type="button" data-nav="sensors"><svg class="ico"><use href="#i-grid"/></svg><span data-i18n="nav.sensors">Sensors</span></button>
+    <button type="button" class="bottom-nav__ai" data-nav="ai"><span class="ai-orb"><svg class="ico"><use href="#i-chat"/></svg></span><span data-i18n="nav.assistant">Assistant</span></button>
+    <button type="button" data-nav="setup"><svg class="ico"><use href="#i-qr"/></svg><span data-i18n="nav.setup">Setup</span></button>
+    <button type="button" data-nav="settings"><svg class="ico"><use href="#i-settings"/></svg><span data-i18n="nav.settings">Settings</span></button>
+  </nav>
+</div>
+
+<div class="modal-layer" id="modalLayer" hidden>
+  <div class="modal-backdrop" data-action="close-modal"></div>
+  <div class="modal" id="modalBox" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1">
+    <div class="modal-head">
+      <h2 id="modalTitle">Dialog</h2>
+      <button class="icon-btn icon-btn--sm" type="button" data-action="close-modal" aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite" aria-atomic="false"></div>
+<noscript><p class="noscript">A.T.L.A.S. Field OS needs JavaScript enabled.</p></noscript>
+
+<script src="assets/config.js"></script>
+<script src="assets/i18n.js"></script>
+<script src="assets/qr.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/app-ui.js"></script>
+</body>
+</html>
